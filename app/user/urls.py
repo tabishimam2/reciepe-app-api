@@ -2,7 +2,7 @@
 URL mappings for the user API
 """
 
-from venv import create
+
 from django.urls import path
 from user import views
 
