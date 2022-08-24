@@ -30,7 +30,7 @@ class AdmiSiteTest(TestCase):
     def test_users_list(self):
         """Test that user are listed on page"""
 
-        url = reverse('admin:core_user_changelist',)
+        url = reverse('admin:core_user_changelist')
         res = self.client.get(url)
 
         self.assertContains(res, self.user.name)
