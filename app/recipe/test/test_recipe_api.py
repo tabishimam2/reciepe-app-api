@@ -21,7 +21,7 @@ def create_recipe(user,**params):
     """ Create and return sample recipe"""
     defaults = {
         'title': 'Sample recipe',
-        'time': 22,
+        'time_minutes': 22,
         'description':'Sample description',
         'price': Decimal('5.25'),
         'link' : 'http://example.com/recipe.pdf',
@@ -52,7 +52,7 @@ class PrivateRecipeAPITest(TestCase):
             'user@example.com',
             'testpass123',
         )
-        self.client.force_authenticates(self.user)
+        self.client.force_authenticate(self.user)
 
     def test_retrive_recipes(self):
         """Test retrieve a list of recipes"""
