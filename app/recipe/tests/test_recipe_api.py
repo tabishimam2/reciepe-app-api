@@ -29,7 +29,7 @@ def create_recipe(user,**params):
     """ Create and return sample recipe"""
     defaults = {
         'title': 'Sample recipe',
-        'time_minutes': 22 ,
+        'time_minutes':22 ,
         'description':'Sample description',
         'price': Decimal('5.25'),
         'link' : 'http://example.com/recipe.pdf',
@@ -40,6 +40,9 @@ def create_recipe(user,**params):
     recipe = Recipe.objects.create(user=user, **defaults)
     return recipe
 
+def create_user(**params):
+    """Create and return new user"""
+    return get_user_model().objects.create_user(**params)
 
 class PublicRecipeAPITest(TestCase):
     """ Test the unauthenticate api request"""
@@ -56,10 +59,7 @@ class PrivateRecipeAPITest(TestCase):
     """Test authenciated API request."""
     def setUp(self) :
         self.client = APIClient()
-        self.user = get_user_model().objects.create_user(
-            'user@example.com',
-            'testpass123',
-        )
+        self.user=create_user(email='user@example.com',password='test123')
         self.client.force_authenticate(self.user)
 
     def test_retrive_recipes(self):
@@ -76,10 +76,7 @@ class PrivateRecipeAPITest(TestCase):
 
     def test_recipe_list_limited_to_user(self):
         """Test list of recipes limited to user"""
-        other_user=get_user_model().objects.create_user(
-            'other@example.com',
-            'password123',
-        )
+        other_user=create_user(email='other@example.com',password='test123')
         create_recipe(user=other_user)
         create_recipe(user=self.user)
 
@@ -101,5 +98,60 @@ class PrivateRecipeAPITest(TestCase):
         serializer = RecipeDetailSerializer
         self.assertEqual(res.data,serializer.data)
 
+    def test_create_recipe(self):
+        """Test to check recipe creation through API"""
+        payload={
+            'title':'Sample Recipe',
+            'time_minutes': 30,
+            'price':Decimal('5.99')
+        }
+        res = self.client.post(RECIPES_URL,payload)
 
- 
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        recipe=Recipe.objects.get(id=res.data['id'])
+        for k,v in payload.items():
+            self.assertEqual(getattr(recipe , k),v)
+        self.assertEqual(recipe.user,self.user)
+
+    def test_partial_updates(self):
+        """Test partial updates on recipe"""
+        original_link='https://example.com/recipe.pdf'
+        recipe=create_recipe(
+        user= self.user,
+        title='Sample Recipe',
+        link=original_link
+        )
+
+        payload={'title':"New Sample recipe"}
+        url=detail_url(recipe.id)
+        res = self.client.patch(url,payload)
+
+        self.assertEqual(res.status_code,status.HTTP_200_OK)
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.title,payload['title'])
+        self.assertEqual(recipe.link,original_link)
+        self.assertEqual(recipe.user,self.user)
+
+    def test_full_update(self):
+        """Test the full updates of the recipe"""
+        recipe=create_recipe(
+            user=self.user,
+            title='Sample recipe',
+            link='https://example.com/recipe.pdf',
+            description='Sample recipe description.'
+        )
+        payload={
+            'title':'New Sample recipe',
+            'link':'https://example.com/new-recipe.pdf',
+            'description':'New sample recipe description',
+            'time_minutes':33,
+            'price':Decimal('2.33'),
+        }
+        url=detail_url(recipe.id)
+        res=self.client.put(url,payload)
+
+        self.assertEqual(res.status_code,status.HTTP_200_OK)
+        recipe.refresh_from_db()
+        for k,v in payload.items():
+            self.assertEqual(getattr(recipe,k),v)
+        self.assertEqual(recipe.user,self.user)
