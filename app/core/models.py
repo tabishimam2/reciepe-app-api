@@ -64,7 +64,7 @@ class Recipe(models.Model):
 class Tag(models.Model):
     """Tags for filtering recipe"""
     name=models.CharField(max_length=255)
-    User=models.ForeignKey(
+    user=models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
