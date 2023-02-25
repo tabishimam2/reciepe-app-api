@@ -3,7 +3,7 @@ Test for recipe APIs
 """
 
 from decimal import Decimal
-from email.policy import default
+#from email.policy import default
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -209,7 +209,7 @@ class PrivateRecipeAPITest(TestCase):
         recipe = recipes[0]
         self.assertEqual(recipe.tag.count(),2)
         for tags in payload['tag']:
-            exists= recipe.tags.filter(
+            exists= recipe.tag.filter(
                 name=tags['name'],
                 user=self.user,
             ).exists()
@@ -234,8 +234,48 @@ class PrivateRecipeAPITest(TestCase):
         self.assertEqual(recipe.tag.count(),2)
         self.assertIn(tag_indian,recipe.tag.all())
         for tags in payload['tag']:
-            exists= recipe.tags.filter(
+            exists= recipe.tag.filter(
                 name=tags['name'],
                 user=self.user,
             ).exists()
-            self.assertTrue(exists)    
+            self.assertTrue(exists)
+
+    def test_create_tag_on_updaet(self):
+        """Test creating tag on updating a recipe"""
+        recipe=create_recipe(user=self.user)
+        payload={'tag':[{'name':'Lunch'}]}
+        url=detail_url(recipe.id)
+        res=self.client.patch(url,payload,format='json')
+
+        self.assertEqual(res.status_code,status.HTTP_200_OK)
+        new_tag=Tag.objects.get(user=self.user,name='Lunch')
+        self.assertIn(new_tag,recipe.tag.all())
+
+    def test_update_recipe_assign_tag(self):
+        """Test asssigning existing tag on updating a recipe"""
+
+        tag_breakfast=Tag.objects.create(user=self.user,name='Breakfast')
+        recipe=create_recipe(useer=self.user)
+        recipe.tag.add(tag_breakfast)
+
+        tag_lunch= Tag.objects.create(user=self.user,name='Lunch')
+        payload={'tag':[{'name':'Lunch'}]}
+        url=detail_url(recipe.id)
+        res=self.client.patch(url,payload,format='json')
+
+        self.assertSetEqual(res.status_code,status.HTTP_200_OK)
+        self.assertIn(tag_lunch,recipe.tag.all())
+        self.assertNotIn(tag_breakfast,recipe.tag.all())
+
+    def test_clear_recipe_tags(self):
+        """Test clearing the tags"""
+        tag=Tag.objects.create(user=self.user,name='Dessert')
+        recipe=create_recipe(user=self.user)
+        recipe.tag.add(tag)
+
+        payload={'tag':[]}
+        url=detail_url(recipe.id)
+        res=self.client.patch(url,payload,format='json')
+
+        self.assertEqual(res.status_code,status.HTTP_200_OK)
+        self.assertEqual(recipe.tag.count(),0)

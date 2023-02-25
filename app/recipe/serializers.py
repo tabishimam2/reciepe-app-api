@@ -22,7 +22,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields=['id','title','time_minutes','price','link','tag']
         read_only_fields=['id']
 
-    def create_recipe(self,validated_data):
+    def create(self,validated_data):
         """Create a recipe"""
         tag = validated_data.pop('tag',[])
         recipe=Recipe.objects.create(**validated_data)
